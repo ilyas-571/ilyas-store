@@ -30,8 +30,6 @@ const createQueryClient = () =>
         networkMode: "online",
       },
     },
-    // Use aggressive garbage collection to reduce memory
-    gcTime: 5 * 60 * 1000, // 5 minute garbage collection
   });
 
 let sharedQueryClient: QueryClient | null = null;
