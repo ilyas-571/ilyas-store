@@ -1,0 +1,12 @@
+{
+  "name": "@workspace/api-spec",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "codegen": "orval --config orval.config.js"
+  },
+  "devDependencies": {
+    "openapi-types": "^12.1.3",
+    "orval": "^7.17.0"
+  }
+}

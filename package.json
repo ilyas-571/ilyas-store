@@ -1,0 +1,20 @@
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "start": "pnpm --filter @workspace/api-server start",
+    "codegen": "pnpm --filter @workspace/api-spec run codegen",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "lighthouse": "^12.8.2",
+    "typescript": "~5.9.2",
+    "prettier": "^3.8.1"
+  }
+}
