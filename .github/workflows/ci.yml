@@ -28,6 +28,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --ignore-scripts
 
+      - name: Format Code
+        run: pnpm run format
+
       - name: Build Workspace Libraries
         run: pnpm run typecheck:libs
 
@@ -39,3 +42,11 @@ jobs:
 
       - name: Build Validation
         run: pnpm run build
+
+      - name: Commit Formatting Changes
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-format code" && git push)
