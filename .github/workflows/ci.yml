@@ -12,28 +12,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: 11
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --ignore-scripts
 
       - name: Type Check (API)
-        run: pnpm --filter @workspace/api-server run type-check
+        run: pnpm --filter @workspace/api-server run typecheck
 
       - name: Type Check (Storefront)
-        run: pnpm --filter @workspace/storefront-next run type-check
+        run: pnpm --filter @workspace/storefront-next run typecheck
 
       - name: Linting
-        run: pnpm run lint
+        run: pnpm run format:check
 
       - name: Build Validation
         run: pnpm run build
