@@ -22,6 +22,7 @@ if (fs.existsSync(envPath)) {
 
 const DATABASE_URL = env.DATABASE_URL;
 const VERCEL_TOKEN = env.VERCEL_TOKEN;
+const VERCEL_SCOPE = "khanedit8-5795s-projects";
 
 if (!DATABASE_URL) {
   console.error("❌ DATABASE_URL is missing in .env");
@@ -41,7 +42,7 @@ function runCommand(command: string, cwd: string) {
 function addVercelEnv(key: string, value: string, cwd: string) {
   for (const env of ["production", "preview", "development"]) {
     try {
-      execSync(`npx vercel env rm ${key} ${env} --token ${VERCEL_TOKEN} --yes`, {
+      execSync(`npx vercel env rm ${key} ${env} --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, {
         cwd,
         stdio: "ignore",
       });
@@ -49,10 +50,10 @@ function addVercelEnv(key: string, value: string, cwd: string) {
       // Ignore if not exists
     }
     console.log(`🏃 Adding environment variable ${key} to ${env}...`);
-    execSync(`npx vercel env add ${key} ${env} --token ${VERCEL_TOKEN}`, {
+    execSync(`npx vercel env add ${key} ${env} --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, {
       cwd,
       input: value,
-      stdio: ["pipe", "ignore", "inherit"], // pipe stdin to pass input, ignore stdout to keep clean, inherit stderr
+      stdio: ["pipe", "ignore", "inherit"],
     });
   }
 }
@@ -67,7 +68,7 @@ async function main() {
     // === STEP 1: Deploy API Server to Vercel ===
     console.log("\n--- STEP 1: Deploying API Server ---");
     console.log("🔗 Linking API Server project on Vercel...");
-    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN}`, apiDir);
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, apiDir);
 
     console.log("⚙️ Setting up environment variables for API Server on Vercel...");
     addVercelEnv("DATABASE_URL", DATABASE_URL, apiDir);
@@ -76,7 +77,7 @@ async function main() {
     addVercelEnv("NODE_ENV", "production", apiDir);
 
     console.log("🚀 Launching API Server deployment on Vercel...");
-    const apiDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --yes`, apiDir);
+    const apiDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, apiDir);
     console.log(apiDeployOutput);
 
     const apiURLMatch = apiDeployOutput.match(/https:\/\/[a-zA-Z0-9-]+\.vercel\.app/);
@@ -89,13 +90,13 @@ async function main() {
     // === STEP 2: Deploy Frontend to Vercel ===
     console.log("\n--- STEP 2: Deploying Frontend ---");
     console.log("🔗 Linking Frontend project on Vercel...");
-    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN}`, frontendDir);
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, frontendDir);
 
     console.log("⚙️ Setting up environment variables for Frontend on Vercel...");
     addVercelEnv("VITE_API_URL", apiURL, frontendDir);
 
     console.log("🚀 Launching Frontend deployment on Vercel...");
-    const frontendDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --yes`, frontendDir);
+    const frontendDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, frontendDir);
     console.log(frontendDeployOutput);
 
     const frontendURLMatch = frontendDeployOutput.match(/https:\/\/[a-zA-Z0-9-]+\.vercel\.app/);
@@ -111,7 +112,7 @@ async function main() {
     addVercelEnv("CORS_ORIGIN", frontendURL, apiDir);
 
     console.log("🚀 Redeploying API Server to apply CORS changes...");
-    const apiRedeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --yes`, apiDir);
+    const apiRedeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, apiDir);
     console.log(apiRedeployOutput);
 
     console.log("\n=======================================================");
