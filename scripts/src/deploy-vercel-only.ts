@@ -74,7 +74,7 @@ async function vercelApiRequest(endpoint: string, options: any = {}) {
   return response.json();
 }
 
-async function configureVercelProject(settings: { rootDirectory: string; installCommand?: string | null; buildCommand?: string | null; framework?: string | null }) {
+async function configureVercelProject(settings: { rootDirectory: string; installCommand?: string | null; buildCommand?: string | null; outputDirectory?: string | null; framework?: string | null }) {
   const projectJsonPath = path.join(workspaceRoot, ".vercel/project.json");
   if (!fs.existsSync(projectJsonPath)) {
     throw new Error(".vercel/project.json not found. Did the link command fail?");
@@ -129,7 +129,8 @@ async function main() {
     await configureVercelProject({
       rootDirectory: "artifacts/api-server",
       installCommand: "pnpm install --ignore-scripts",
-      buildCommand: "pnpm run build",
+      buildCommand: null,
+      outputDirectory: null,
       framework: null
     });
 
@@ -160,6 +161,7 @@ async function main() {
       rootDirectory: "artifacts/ilyas-store",
       installCommand: "pnpm install --ignore-scripts",
       buildCommand: "pnpm run build",
+      outputDirectory: null, // Vite default is dist/public as configured in vercel.json
       framework: "vite"
     });
 
