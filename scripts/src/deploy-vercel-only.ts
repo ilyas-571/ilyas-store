@@ -34,23 +34,71 @@ if (!VERCEL_TOKEN) {
   process.exit(1);
 }
 
-function runCommand(command: string, cwd: string) {
+const workspaceRoot = path.resolve(__dirname, "../..");
+
+function runCommand(command: string, cwd: string = workspaceRoot) {
   console.log(`🏃 Running: ${command} in ${cwd}`);
   return execSync(command, { cwd, encoding: "utf-8" });
 }
 
-function addVercelEnv(key: string, value: string, cwd: string) {
+async function vercelApiRequest(endpoint: string, options: any = {}) {
+  const url = `https://api.vercel.com${endpoint}`;
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Authorization": `Bearer ${VERCEL_TOKEN}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Vercel API Error [${response.status}]: ${text}`);
+  }
+
+  return response.json();
+}
+
+async function configureVercelProjectRootDir(rootDir: string) {
+  const projectJsonPath = path.join(workspaceRoot, ".vercel/project.json");
+  if (!fs.existsSync(projectJsonPath)) {
+    throw new Error(".vercel/project.json not found. Did the link command fail?");
+  }
+
+  const projectConfig = JSON.parse(fs.readFileSync(projectJsonPath, "utf-8"));
+  const projectId = projectConfig.projectId;
+  const teamId = projectConfig.orgId.startsWith("team_") ? projectConfig.orgId : undefined;
+
+  console.log(`🔧 Configuring root directory to "${rootDir}" for Vercel project ${projectId}...`);
+  const queryParam = teamId ? `?teamId=${teamId}` : "";
+  
+  await vercelApiRequest(`/v9/projects/${projectId}${queryParam}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      rootDirectory: rootDir,
+    }),
+  });
+  console.log(`✅ Root directory configured to "${rootDir}" successfully!`);
+}
+
+function cleanVercelConfig() {
+  const dotVercelDir = path.join(workspaceRoot, ".vercel");
+  if (fs.existsSync(dotVercelDir)) {
+    console.log("🧹 Cleaning up local .vercel configuration directory...");
+    fs.rmSync(dotVercelDir, { recursive: true, force: true });
+  }
+}
+
+function addVercelEnv(key: string, value: string) {
   try {
-    execSync(`npx vercel env rm ${key} production --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, {
-      cwd,
-      stdio: "ignore",
-    });
+    runCommand(`npx vercel env rm ${key} production --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`);
   } catch (e) {
     // Ignore if not exists
   }
   console.log(`🏃 Adding environment variable ${key} to production...`);
   execSync(`npx vercel env add ${key} production --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, {
-    cwd,
+    cwd: workspaceRoot,
     input: value,
     stdio: ["pipe", "ignore", "inherit"],
   });
@@ -58,24 +106,26 @@ function addVercelEnv(key: string, value: string, cwd: string) {
 
 async function main() {
   try {
-    console.log("🚀 Starting Vercel-Only Deployment Automator...");
-
-    const apiDir = path.resolve(__dirname, "../../artifacts/api-server");
-    const frontendDir = path.resolve(__dirname, "../../artifacts/ilyas-store");
+    console.log("🚀 Starting Vercel-Only Deployment Automator (Monorepo Workspace Mode)...");
 
     // === STEP 1: Deploy API Server to Vercel ===
     console.log("\n--- STEP 1: Deploying API Server ---");
+    cleanVercelConfig();
+
     console.log("🔗 Linking API Server project on Vercel...");
-    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, apiDir);
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --project ilyas-store-api`);
+
+    console.log("🔧 Configuring monorepo settings for API Server project...");
+    await configureVercelProjectRootDir("artifacts/api-server");
 
     console.log("⚙️ Setting up environment variables for API Server on Vercel...");
-    addVercelEnv("DATABASE_URL", DATABASE_URL, apiDir);
-    addVercelEnv("SESSION_SECRET", "ilyas-store-prod-session-secret-key-999", apiDir);
-    addVercelEnv("PORT", "5000", apiDir);
-    addVercelEnv("NODE_ENV", "production", apiDir);
+    addVercelEnv("DATABASE_URL", DATABASE_URL);
+    addVercelEnv("SESSION_SECRET", "ilyas-store-prod-session-secret-key-999");
+    addVercelEnv("PORT", "5000");
+    addVercelEnv("NODE_ENV", "production");
 
     console.log("🚀 Launching API Server deployment on Vercel...");
-    const apiDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, apiDir);
+    const apiDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`);
     console.log(apiDeployOutput);
 
     const apiURLMatch = apiDeployOutput.match(/https:\/\/[a-zA-Z0-9-]+\.vercel\.app/);
@@ -87,14 +137,19 @@ async function main() {
 
     // === STEP 2: Deploy Frontend to Vercel ===
     console.log("\n--- STEP 2: Deploying Frontend ---");
+    cleanVercelConfig();
+
     console.log("🔗 Linking Frontend project on Vercel...");
-    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, frontendDir);
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --project ilyas-store`);
+
+    console.log("🔧 Configuring monorepo settings for Frontend project...");
+    await configureVercelProjectRootDir("artifacts/ilyas-store");
 
     console.log("⚙️ Setting up environment variables for Frontend on Vercel...");
-    addVercelEnv("VITE_API_URL", apiURL, frontendDir);
+    addVercelEnv("VITE_API_URL", apiURL);
 
     console.log("🚀 Launching Frontend deployment on Vercel...");
-    const frontendDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, frontendDir);
+    const frontendDeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`);
     console.log(frontendDeployOutput);
 
     const frontendURLMatch = frontendDeployOutput.match(/https:\/\/[a-zA-Z0-9-]+\.vercel\.app/);
@@ -106,12 +161,20 @@ async function main() {
 
     // === STEP 3: Configure CORS on API Server ===
     console.log("\n--- STEP 3: Configuring CORS on API Server ---");
+    cleanVercelConfig();
+
+    console.log("🔗 Re-linking API Server project to update environment...");
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --project ilyas-store-api`);
+
     console.log(`⚙️ Setting CORS_ORIGIN on API Server to: ${frontendURL}`);
-    addVercelEnv("CORS_ORIGIN", frontendURL, apiDir);
+    addVercelEnv("CORS_ORIGIN", frontendURL);
 
     console.log("🚀 Redeploying API Server to apply CORS changes...");
-    const apiRedeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, apiDir);
+    const apiRedeployOutput = runCommand(`npx vercel --prod --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`);
     console.log(apiRedeployOutput);
+
+    // Clean up configuration directories to keep project pristine
+    cleanVercelConfig();
 
     console.log("\n=======================================================");
     console.log("🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!");
@@ -120,6 +183,7 @@ async function main() {
     console.log("=======================================================\n");
 
   } catch (error) {
+    cleanVercelConfig();
     console.error("❌ Deployment failed with error:", error);
     process.exit(1);
   }
