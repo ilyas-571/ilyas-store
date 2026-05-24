@@ -40,22 +40,20 @@ function runCommand(command: string, cwd: string) {
 }
 
 function addVercelEnv(key: string, value: string, cwd: string) {
-  for (const env of ["production", "preview", "development"]) {
-    try {
-      execSync(`npx vercel env rm ${key} ${env} --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, {
-        cwd,
-        stdio: "ignore",
-      });
-    } catch (e) {
-      // Ignore if not exists
-    }
-    console.log(`🏃 Adding environment variable ${key} to ${env}...`);
-    execSync(`npx vercel env add ${key} ${env} --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, {
+  try {
+    execSync(`npx vercel env rm ${key} production --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE} --yes`, {
       cwd,
-      input: value,
-      stdio: ["pipe", "ignore", "inherit"],
+      stdio: "ignore",
     });
+  } catch (e) {
+    // Ignore if not exists
   }
+  console.log(`🏃 Adding environment variable ${key} to production...`);
+  execSync(`npx vercel env add ${key} production --token ${VERCEL_TOKEN} --scope ${VERCEL_SCOPE}`, {
+    cwd,
+    input: value,
+    stdio: ["pipe", "ignore", "inherit"],
+  });
 }
 
 async function main() {
