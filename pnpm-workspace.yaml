@@ -30,6 +30,7 @@ catalog:
 autoInstallPeers: false
 
 onlyBuiltDependencies:
+  - '@sentry/cli'
   - '@swc/core'
   - esbuild
   - msw
@@ -41,6 +42,7 @@ overrides:
   esbuild: "0.27.3"
 
 allowBuilds:
+  '@sentry/cli': set this to true or false
   bcrypt: true
   esbuild: true
   sharp: true

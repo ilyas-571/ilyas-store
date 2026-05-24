@@ -12,6 +12,15 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "@swc/core",
+      "esbuild",
+      "msw",
+      "unrs-resolver"
+    ]
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/react": "catalog:",
