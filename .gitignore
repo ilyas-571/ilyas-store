@@ -1,59 +1,58 @@
-# Environment secrets — never commit these
+# Environment secrets
 .env
 .env.local
 .env.*.local
 
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# Build output
+dist/
+tmp/
+out-tsc/
+out/
+.next/
+artifacts/
+.vercel/
 
-# compiled output
-dist
-tmp
-out-tsc
+# TypeScript build cache
 *.tsbuildinfo
-.expo
-.expo-shared
 
-# dependencies
-node_modules
+# Dependencies
+node_modules/
 
-# IDEs and editors
-/.idea
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+testem.log
+
+# IDEs
+.idea/
 .project
 .classpath
 .c9/
 *.launch
 .settings/
-*.sublime-workspace
 
-# IDE - VSCode
+# VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
+# System files
 .DS_Store
 Thumbs.db
 
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
+# Misc
+coverage/
+typings/
 .cache/
 .local/
 
-.vercel
-.next
+# Cursor / NX / custom rules
+.cursor/
+.github/instructions/
 
-.vercel
+# Replit
+.expo/
+.expo-shared/
