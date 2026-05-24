@@ -4,6 +4,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { CreateOrderBody, UpdateOrderStatusBody, ListOrdersQueryParams } from "@workspace/api-zod";
 import { requireAuth, requireAdmin, optionalAuth } from "../middlewares/auth";
 import { sendOrderConfirmationEmail, sendNewOrderAdminAlert } from "../lib/email";
+import { paymentService, PaymentMethod } from "../lib/payment.service";
 
 const router: IRouter = Router();
 
@@ -57,8 +58,14 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { items, address, currency = "PKR", couponCode } = parsed.data;
-  const paymentMethod = req.body?.paymentMethod === "stripe" || req.body?.paymentMethod === "paypal" ? req.body.paymentMethod : "cod";
-  const paymentStatus = paymentMethod === "cod" ? "pending" : "paid";
+  const paymentMethod = (req.body?.paymentMethod || "cod") as PaymentMethod;
+  
+  let paymentStatus: any = "pending";
+  if (paymentMethod === "cod") {
+    paymentStatus = "pending";
+  } else {
+    paymentStatus = "awaiting_verification";
+  }
 
   let discount = 0;
   let appliedCoupon: string | null = null;
@@ -123,10 +130,11 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
       };
 
       const [newOrder] = await tx.insert(ordersTable).values({
+        storeId: 1,
         userId: req.user!.id,
         totalPrice: String(totalPrice),
         currency,
-        paymentMethod,
+        paymentMethod: paymentMethod as "cod" | "stripe" | "paypal",
         paymentStatus,
         status: "pending",
         invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random() * 900 + 100)}`,
@@ -143,6 +151,20 @@ router.post("/orders", requireAuth, async (req, res): Promise<void> => {
 
       return newOrder;
     });
+
+    // Handle Payment Processing
+    const paymentResult = await paymentService.processPayment(
+      paymentMethod, 
+      parseFloat(order.totalPrice), 
+      currency, 
+      String(order.id)
+    );
+
+    if (!paymentResult.success) {
+      // If payment fails immediately, we might want to cancel the order or notify the user
+      // For now, we'll just log it and let the admin handle it, or you could throw an error to rollback the transaction
+      console.error("Payment processing failed:", paymentResult.message);
+    }
 
     const [user] = await db.select({ name: usersTable.name, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, req.user!.id));
     

@@ -3,6 +3,7 @@ import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { JsonLd } from "@/components/json-ld";
+import { PageTransition } from "@/components/animations";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -92,7 +93,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             },
           ]}
         />
-        <Providers>{children}</Providers>
+        <Providers>
+          <PageTransition>{children}</PageTransition>
+        </Providers>
       </body>
     </html>
   );

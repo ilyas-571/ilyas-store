@@ -6,6 +6,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { tenantMiddleware } from "./middlewares/tenant";
 
 const app: Express = express();
 
@@ -102,6 +103,8 @@ app.use(limiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(tenantMiddleware);
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 app.use(

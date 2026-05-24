@@ -8,6 +8,7 @@ type CreateProductVariantInput = NonNullable<
   z.infer<typeof CreateProductBody>["variants"]
 >[number];
 import { requireAuth, requireAdmin } from "../middlewares/auth";
+import { TenantRequest } from "../middlewares/tenant";
 import * as cheerio from "cheerio";
 
 const router: IRouter = Router();
@@ -68,7 +69,7 @@ async function buildProductResponse(product: typeof productsTable.$inferSelect) 
   };
 }
 
-router.get("/products", async (req, res): Promise<void> => {
+router.get("/products", async (req: TenantRequest, res): Promise<void> => {
   // Express query params are always strings — coerce numeric fields before Zod validation
   const rawQuery: Record<string, unknown> = { ...req.query };
   if (rawQuery.page != null) rawQuery.page = Number(rawQuery.page);
@@ -86,6 +87,14 @@ router.get("/products", async (req, res): Promise<void> => {
   const { category, search, minPrice, maxPrice, featured, page = 1, limit = 12 } = params.data;
 
   const conditions = [];
+  if (req.storeId) {
+    conditions.push(eq(productsTable.storeId, req.storeId));
+  } else {
+    // If no storeId is resolved, we return nothing to prevent leaking data from all stores
+    res.status(403).json({ error: "Store context missing" });
+    return;
+  }
+
   if (category) {
     const parsedId = parseInt(category, 10);
     if (!isNaN(parsedId)) {
@@ -100,7 +109,12 @@ router.get("/products", async (req, res): Promise<void> => {
   if (minPrice != null) conditions.push(gte(sql`${productsTable.basePrice}::numeric`, minPrice));
   if (maxPrice != null) conditions.push(lte(sql`${productsTable.basePrice}::numeric`, maxPrice));
   if (featured != null) conditions.push(eq(productsTable.isFeatured, featured));
-  if (params.data.brand) conditions.push(ilike(productsTable.brand, `%${params.data.brand}%`));
+  
+  // Faceted Search: Support multiple brands as a comma-separated string
+  if (params.data.brand) {
+    const brands = params.data.brand.split(',').map(b => b.trim());
+    conditions.push(inArray(productsTable.brand, brands));
+  }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -111,6 +125,80 @@ router.get("/products", async (req, res): Promise<void> => {
 
   const products = await Promise.all(paginated.map(buildProductResponse));
   res.json({ products, total, page, totalPages: Math.ceil(total / limit) });
+});
+
+router.get("/filters", async (req: TenantRequest, res): Promise<void> => {
+  if (!req.storeId) {
+    res.status(403).json({ error: "Store context missing" });
+    return;
+  }
+
+  try {
+    // Get all unique brands and categories for this store
+    const brands = await db.select({ brand: productsTable.brand }).from(productsTable).where(eq(productsTable.storeId, req.storeId));
+    const categories = await db.select({ name: categoriesTable.name, id: categoriesTable.id }).from(categoriesTable).where(eq(categoriesTable.storeId, req.storeId));
+    
+    // Get price range
+    const [priceRange] = await db.select({
+      min: sql<number>`min(${productsTable.basePrice}::numeric)`,
+      max: sql<number>`max(${productsTable.basePrice}::numeric)`,
+    }).from(productsTable).where(eq(productsTable.storeId, req.storeId));
+
+    const uniqueBrands = [...new Set(brands.map(b => b.brand))].filter(Boolean).sort();
+
+    res.json({
+      brands: uniqueBrands,
+      categories,
+      priceRange: {
+        min: priceRange?.min ?? 0,
+        max: priceRange?.max ?? 0,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch filters" });
+  }
+});
+
+router.get("/:id/recommendations", async (req: TenantRequest, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const productId = parseInt(rawId, 10);
+  if (isNaN(productId)) {
+    res.status(400).json({ error: "Invalid product ID" });
+    return;
+  }
+
+  if (!req.storeId) {
+    res.status(403).json({ error: "Store context missing" });
+    return;
+  }
+
+  try {
+    const [target] = await db.select().from(productsTable).where(eq(productsTable.id, productId));
+    if (!target) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
+    const recommendations = await db.select()
+      .from(productsTable)
+      .where(
+        and(
+          eq(productsTable.storeId, req.storeId),
+          eq(productsTable.categoryId, target.categoryId),
+          sql`${productsTable.id} != ${productId}`
+        )
+      )
+      .orderBy(
+        sql`CASE WHEN ${productsTable.brand} = ${target.brand} THEN 0 ELSE 1 END`,
+        desc(productsTable.createdAt)
+      )
+      .limit(4);
+
+    const results = await Promise.all(recommendations.map(buildProductResponse));
+    res.json({ recommendations: results });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch recommendations" });
+  }
 });
 
 router.post("/products", requireAdmin, async (req, res): Promise<void> => {
@@ -131,6 +219,7 @@ router.post("/products", requireAdmin, async (req, res): Promise<void> => {
   try {
     const product = await db.transaction(async (tx) => {
       const [newProduct] = await tx.insert(productsTable).values({
+        storeId: 1,
         name: parsed.data.name,
         slug: typeof req.body?.slug === "string" && req.body.slug.trim() ? req.body.slug : generateSlug(parsed.data.name),
         sku: autoSku,

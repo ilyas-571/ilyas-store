@@ -2,9 +2,11 @@ import { pgTable, text, serial, timestamp, boolean, integer, numeric } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { categoriesTable } from "./categories";
+import { storesTable } from "./stores";
 
 export const productsTable = pgTable("products", {
   id: serial("id").primaryKey(),
+  storeId: integer("store_id").notNull().references(() => storesTable.id), // Added for multi-tenancy
   name: text("name").notNull(),
   slug: text("slug").notNull().default(""),
   sku: text("sku").notNull().default(""),

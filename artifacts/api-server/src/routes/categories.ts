@@ -20,6 +20,7 @@ router.post("/categories", requireAdmin, async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const [cat] = await db.insert(categoriesTable).values({
+    storeId: 1,
     name: parsed.data.name,
     image: parsed.data.image ?? null,
     parentId: Number.isInteger(req.body?.parentId) ? req.body.parentId : null,

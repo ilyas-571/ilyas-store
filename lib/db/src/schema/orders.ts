@@ -4,9 +4,11 @@ import { z } from "zod/v4";
 import { usersTable } from "./users";
 import { productsTable } from "./products";
 import { productVariantsTable } from "./product_variants";
+import { storesTable } from "./stores";
 
 export const ordersTable = pgTable("orders", {
   id: serial("id").primaryKey(),
+  storeId: integer("store_id").notNull().references(() => storesTable.id), // Added for multi-tenancy
   userId: integer("user_id").notNull().references(() => usersTable.id),
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("PKR"),

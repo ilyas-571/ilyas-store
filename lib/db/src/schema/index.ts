@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./stores";
 export * from "./categories";
 export * from "./products";
 export * from "./product_variants";
@@ -9,3 +10,4 @@ export * from "./coupons";
 export * from "./settings";
 export * from "./ads";
 export * from "./cart_items";
+export * from "./wishlist";

@@ -1,9 +1,11 @@
-import { pgTable, text, serial, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { storesTable } from "./stores";
 
 export const settingsTable = pgTable("settings", {
   id: serial("id").primaryKey(),
+  storeId: integer("store_id").notNull().references(() => storesTable.id), // Added for multi-tenancy
   storeName: text("store_name").notNull().default("Ilyas Store"),
   logoUrl: text("logo_url"),
   faviconUrl: text("favicon_url"),

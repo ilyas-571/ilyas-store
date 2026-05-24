@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -71,7 +71,7 @@ export function ProductsToolbar({ categories }: { categories: CategoryLite[] }) 
         <div className="bg-muted/40 rounded-sm p-5 mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <form
             className="relative"
-            onSubmit={(e) => {
+            onSubmit={(e: FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               pushQuery({
                 search,
@@ -86,13 +86,13 @@ export function ProductsToolbar({ categories }: { categories: CategoryLite[] }) 
             <Input
               placeholder="Search products..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               className="pl-9 h-10 font-sans"
             />
           </form>
           <Select
             value={category || "all"}
-            onValueChange={(v) => {
+            onValueChange={(v: string) => {
               const next = v === "all" ? "" : v;
               setCategory(next);
               pushQuery({
@@ -119,7 +119,7 @@ export function ProductsToolbar({ categories }: { categories: CategoryLite[] }) 
             placeholder="Min price"
             type="number"
             value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setMinPrice(e.target.value)}
             onBlur={() =>
               pushQuery({
                 search,
@@ -134,7 +134,7 @@ export function ProductsToolbar({ categories }: { categories: CategoryLite[] }) 
             placeholder="Max price"
             type="number"
             value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxPrice(e.target.value)}
             onBlur={() =>
               pushQuery({
                 search,

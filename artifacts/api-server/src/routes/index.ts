@@ -12,6 +12,7 @@ import dashboardRouter from "./dashboard";
 import uploadRouter from "./upload";
 import adsRouter from "./ads";
 import cartRouter from "./cart";
+import wishlistRouter from "./wishlist";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(dashboardRouter);
 router.use(uploadRouter);
 router.use(adsRouter);
 router.use(cartRouter);
+router.use(wishlistRouter);
 
 export default router;

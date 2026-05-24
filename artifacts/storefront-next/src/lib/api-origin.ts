@@ -16,6 +16,10 @@ export async function fetchApiJson<T>(
   const base = getInternalApiOrigin();
   const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
 
+  // Inject store slug from the current request context if available
+  // Note: In Next.js SSR, we need to pass the header from the page/layout to this function
+  // or use a request-scoped store. For now, we'll allow the init.headers to carry it.
+
   // Create AbortController with 5-second timeout for SSR
   // Lighthouse has 30-second timeout, so 5s for each API call is reasonable
   const controller = new AbortController();
