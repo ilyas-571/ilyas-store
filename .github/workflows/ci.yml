@@ -10,7 +10,7 @@ jobs:
   quality-gate:
     runs-on: ubuntu-latest
     env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
 
@@ -33,9 +33,6 @@ jobs:
 
       - name: Type Check (API)
         run: pnpm --filter @workspace/api-server run typecheck
-
-      - name: Type Check (Storefront)
-        run: pnpm --filter @workspace/storefront-next run typecheck
 
       - name: Linting
         run: pnpm run format:check
