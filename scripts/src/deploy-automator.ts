@@ -39,13 +39,13 @@ if (!VERCEL_TOKEN) {
   process.exit(1);
 }
 
-async function renderRequest(endpoint: string, options: any = {}) {
+async function renderRequest(endpoint: string, options: any = {}): Promise<any> {
   const url = `https://api.render.com/v1${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers: {
-      "Authorization": `Bearer ${RENDER_API_KEY}`,
-      "Accept": "application/json",
+      Authorization: `Bearer ${RENDER_API_KEY}`,
+      Accept: "application/json",
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
@@ -97,13 +97,14 @@ async function main() {
             { key: "DATABASE_URL", value: DATABASE_URL },
             { key: "SESSION_SECRET", value: "ilyas-store-prod-session-secret-key-999" },
             { key: "PORT", value: "5000" },
-            { key: "NODE_ENV", value: "production" }
+            { key: "NODE_ENV", value: "production" },
           ],
           envSpecificDetails: {
-            buildCommand: "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build",
-            startCommand: "node dist/index.mjs"
-          }
-        }
+            buildCommand:
+              "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build",
+            startCommand: "node dist/index.mjs",
+          },
+        },
       };
 
       const creationResult = await renderRequest("/services", {
@@ -124,19 +125,27 @@ async function main() {
     // Create or unlink if necessary, then add environment variable
     try {
       console.log("🧹 Removing existing environment variables on Vercel if any...");
-      execSync(`npx vercel env rm VITE_API_URL production preview development --token ${VERCEL_TOKEN} --yes`, {
-        cwd: frontendDir,
-        stdio: "ignore",
-      });
+      execSync(
+        `npx vercel env rm VITE_API_URL production preview development --token ${VERCEL_TOKEN} --yes`,
+        {
+          cwd: frontendDir,
+          stdio: "ignore",
+        },
+      );
     } catch (e) {
       // Ignore if not exists
     }
 
-    console.log(`➕ Adding VITE_API_URL environment variable to Vercel pointing to Render: ${renderUrl}`);
-    execSync(`npx vercel env add VITE_API_URL ${renderUrl} production preview development --token ${VERCEL_TOKEN}`, {
-      cwd: frontendDir,
-      stdio: "inherit",
-    });
+    console.log(
+      `➕ Adding VITE_API_URL environment variable to Vercel pointing to Render: ${renderUrl}`,
+    );
+    execSync(
+      `npx vercel env add VITE_API_URL ${renderUrl} production preview development --token ${VERCEL_TOKEN}`,
+      {
+        cwd: frontendDir,
+        stdio: "inherit",
+      },
+    );
 
     console.log("🚀 Running Vercel deployment (this may take 1-2 minutes)...");
     const vercelOutput = execSync(`npx vercel --prod --token ${VERCEL_TOKEN} --yes`, {
@@ -158,9 +167,11 @@ async function main() {
     // 4. Update Render Environment Variables with Vercel URL (CORS)
     console.log(`🔄 Updating Render service variables to allow CORS from: ${vercelUrl}`);
     const currentEnvVars = await renderRequest(`/services/${apiService.id}/env-vars`);
-    
+
     // Merge or update CORS_ORIGIN
-    const updatedEnvVars = currentEnvVars.map((v: any) => v.envVar).filter((v: any) => v.key !== "CORS_ORIGIN");
+    const updatedEnvVars = currentEnvVars
+      .map((v: any) => v.envVar)
+      .filter((v: any) => v.key !== "CORS_ORIGIN");
     updatedEnvVars.push({ key: "CORS_ORIGIN", value: vercelUrl });
 
     await renderRequest(`/services/${apiService.id}/env-vars`, {
@@ -182,7 +193,6 @@ async function main() {
     console.log(`🛒 Storefront (Frontend): ${vercelUrl}`);
     console.log(`⚡ API Backend: ${renderUrl}`);
     console.log("=======================================================\n");
-
   } catch (error) {
     console.error("❌ Deployment failed with error:", error);
     process.exit(1);
