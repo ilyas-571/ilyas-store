@@ -66,6 +66,9 @@ async function main() {
 
     // === STEP 1: Deploy API Server to Vercel ===
     console.log("\n--- STEP 1: Deploying API Server ---");
+    console.log("🔗 Linking API Server project on Vercel...");
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN}`, apiDir);
+
     console.log("⚙️ Setting up environment variables for API Server on Vercel...");
     addVercelEnv("DATABASE_URL", DATABASE_URL, apiDir);
     addVercelEnv("SESSION_SECRET", "ilyas-store-prod-session-secret-key-999", apiDir);
@@ -85,6 +88,9 @@ async function main() {
 
     // === STEP 2: Deploy Frontend to Vercel ===
     console.log("\n--- STEP 2: Deploying Frontend ---");
+    console.log("🔗 Linking Frontend project on Vercel...");
+    runCommand(`npx vercel link --yes --token ${VERCEL_TOKEN}`, frontendDir);
+
     console.log("⚙️ Setting up environment variables for Frontend on Vercel...");
     addVercelEnv("VITE_API_URL", apiURL, frontendDir);
 
