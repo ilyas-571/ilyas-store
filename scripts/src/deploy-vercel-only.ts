@@ -74,7 +74,7 @@ async function vercelApiRequest(endpoint: string, options: any = {}) {
   return response.json();
 }
 
-async function configureVercelProjectRootDir(rootDir: string) {
+async function configureVercelProject(settings: { rootDirectory: string; installCommand?: string | null; buildCommand?: string | null; framework?: string | null }) {
   const projectJsonPath = path.join(workspaceRoot, ".vercel/project.json");
   if (!fs.existsSync(projectJsonPath)) {
     throw new Error(".vercel/project.json not found. Did the link command fail?");
@@ -84,16 +84,14 @@ async function configureVercelProjectRootDir(rootDir: string) {
   const projectId = projectConfig.projectId;
   const teamId = projectConfig.orgId.startsWith("team_") ? projectConfig.orgId : undefined;
 
-  console.log(`🔧 Configuring root directory to "${rootDir}" for Vercel project ${projectId}...`);
+  console.log(`🔧 Configuring Vercel project ${projectId} settings...`, settings);
   const queryParam = teamId ? `?teamId=${teamId}` : "";
   
   await vercelApiRequest(`/v9/projects/${projectId}${queryParam}`, {
     method: "PATCH",
-    body: JSON.stringify({
-      rootDirectory: rootDir,
-    }),
+    body: JSON.stringify(settings),
   });
-  console.log(`✅ Root directory configured to "${rootDir}" successfully!`);
+  console.log(`✅ Vercel project settings configured successfully!`);
 }
 
 function cleanVercelConfig() {
@@ -128,7 +126,12 @@ async function main() {
     runVercelLink("ilyas-store-api");
 
     console.log("🔧 Configuring monorepo settings for API Server project...");
-    await configureVercelProjectRootDir("artifacts/api-server");
+    await configureVercelProject({
+      rootDirectory: "artifacts/api-server",
+      installCommand: "pnpm install --ignore-scripts",
+      buildCommand: "pnpm run build",
+      framework: null
+    });
 
     console.log("⚙️ Setting up environment variables for API Server on Vercel...");
     addVercelEnv("DATABASE_URL", DATABASE_URL);
@@ -153,7 +156,12 @@ async function main() {
     runVercelLink("ilyas-store");
 
     console.log("🔧 Configuring monorepo settings for Frontend project...");
-    await configureVercelProjectRootDir("artifacts/ilyas-store");
+    await configureVercelProject({
+      rootDirectory: "artifacts/ilyas-store",
+      installCommand: "pnpm install --ignore-scripts",
+      buildCommand: "pnpm run build",
+      framework: "vite"
+    });
 
     console.log("⚙️ Setting up environment variables for Frontend on Vercel...");
     addVercelEnv("VITE_API_URL", apiURL);
