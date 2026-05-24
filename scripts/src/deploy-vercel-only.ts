@@ -129,7 +129,7 @@ async function main() {
     await configureVercelProject({
       rootDirectory: "artifacts/api-server",
       installCommand: "pnpm install --ignore-scripts",
-      buildCommand: null,
+      buildCommand: "",
       outputDirectory: null,
       framework: null
     });
