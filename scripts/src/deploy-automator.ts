@@ -86,21 +86,23 @@ async function main() {
         type: "web_service",
         name: "ilyas-store-api",
         ownerId,
-        repo: "https://github.com/ilyas-571/ilyas-store",
+        repo: "https://github.com/ilyas-571/ilyas-store.git",
         branch: "main",
         rootDir: "artifacts/api-server",
         autoDeploy: "yes",
         serviceDetails: {
           env: "node",
-          buildCommand: "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build",
-          startCommand: "node dist/index.mjs",
           plan: "free",
           envVars: [
             { key: "DATABASE_URL", value: DATABASE_URL },
             { key: "SESSION_SECRET", value: "ilyas-store-prod-session-secret-key-999" },
             { key: "PORT", value: "5000" },
             { key: "NODE_ENV", value: "production" }
-          ]
+          ],
+          envSpecificDetails: {
+            buildCommand: "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build",
+            startCommand: "node dist/index.mjs"
+          }
         }
       };
 
