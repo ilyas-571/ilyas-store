@@ -39,12 +39,22 @@ function runCommand(command: string, cwd: string) {
 }
 
 function addVercelEnv(key: string, value: string, cwd: string) {
-  try {
-    runCommand(`npx vercel env rm ${key} production preview development --token ${VERCEL_TOKEN} --yes`, cwd);
-  } catch (e) {
-    // Ignore if not exists
+  for (const env of ["production", "preview", "development"]) {
+    try {
+      execSync(`npx vercel env rm ${key} ${env} --token ${VERCEL_TOKEN} --yes`, {
+        cwd,
+        stdio: "ignore",
+      });
+    } catch (e) {
+      // Ignore if not exists
+    }
+    console.log(`🏃 Adding environment variable ${key} to ${env}...`);
+    execSync(`npx vercel env add ${key} ${env} --token ${VERCEL_TOKEN}`, {
+      cwd,
+      input: value,
+      stdio: ["pipe", "ignore", "inherit"], // pipe stdin to pass input, ignore stdout to keep clean, inherit stderr
+    });
   }
-  runCommand(`npx vercel env add ${key} "${value}" production preview development --token ${VERCEL_TOKEN}`, cwd);
 }
 
 async function main() {
