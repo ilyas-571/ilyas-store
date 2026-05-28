@@ -1,6 +1,14 @@
 {
   "version": 2,
+  "buildCommand": "cd ../.. && pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/api-server run build",
   "outputDirectory": ".",
+  "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",

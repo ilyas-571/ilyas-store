@@ -1,6 +1,5 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import compression from "compression";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import path from "path";
@@ -10,7 +9,7 @@ import { tenantMiddleware } from "./middlewares/tenant";
 
 const app: Express = express();
 
-app.use(compression());
+// Note: Vercel applies gzip/brotli automatically — no compression middleware needed.
 
 /** Security headers middleware */
 app.use((req, res, next) => {
@@ -88,20 +87,31 @@ app.use(
     },
   }),
 );
+
+// CORS: default to storefront URL if CORS_ORIGIN is not explicitly set
+const corsOrigin = process.env.CORS_ORIGIN || process.env.NEXT_PUBLIC_SITE_URL || "*";
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "*",
+  origin: corsOrigin,
   credentials: true,
 }));
 
-// Global rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later."
+// Global rate limiting — generous for general browsing (500 req / 15 min)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: "Too many requests from this IP, please try again later.",
 });
-app.use(limiter);
+app.use(globalLimiter);
 
-app.use(express.json());
+// Stricter rate limiting for auth routes (10 req / 15 min per IP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many authentication attempts, please try again later.",
+});
+app.use("/api/auth", authLimiter);
+
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use(tenantMiddleware);

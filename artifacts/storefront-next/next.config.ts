@@ -6,7 +6,7 @@ const apiOrigin = process.env.INTERNAL_API_URL || process.env.API_ORIGIN || "";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: process.env.NODE_ENV !== "production",
-  
+
   // Optimize images for performance
   images: {
     formats: ["image/avif", "image/webp"],
@@ -28,18 +28,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Enable SWR cache for static pages
-  swrDelta: 60,
-
-  // Compression middleware
+  // Compression middleware (Vercel handles this, but useful for self-hosted)
   compress: true,
 
-  // Production optimizations
-  productionBrowserSourceMaps: true,
-  onDemandEntries: {
-    maxInactiveAge: 30_000, // keep entries alive for 30 seconds
-    pagesBufferLength: 5,
-  },
+  // NEVER expose source maps in production — security risk + slow builds
+  productionBrowserSourceMaps: false,
 
   async rewrites() {
     const origin = apiOrigin.replace(/\/$/, "");
@@ -75,10 +68,11 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "geolocation=(), microphone=(), camera=()",
           },
-          // Content Security Policy (CSP) - prevents XSS and injection attacks
+          // Content Security Policy — unsafe-eval removed for security;
+          // unsafe-inline kept because Next.js injects inline scripts for hydration
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
           },
           // HSTS (HTTP Strict Transport Security) - forces HTTPS in production
           ...(process.env.NODE_ENV === "production"
@@ -98,11 +92,6 @@ const nextConfig: NextConfig = {
           {
             key: "Cross-Origin-Resource-Policy",
             value: "cross-origin",
-          },
-          // Trusted Types (mitigates DOM XSS)
-          {
-            key: "Require-Trusted-Types-For",
-            value: "'script'",
           },
         ],
       },
@@ -129,19 +118,8 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Redirect HTTP to HTTPS in production
-  async redirects() {
-    if (process.env.NODE_ENV !== "production") {
-      return [];
-    }
-    return [
-      {
-        source: "/:path*",
-        destination: "https://:host/:path*",
-        permanent: true,
-      },
-    ];
-  },
+  // Note: Vercel handles HTTP→HTTPS redirect automatically.
+  // No custom redirects needed for HTTPS enforcement.
 };
 
 export default nextConfig;

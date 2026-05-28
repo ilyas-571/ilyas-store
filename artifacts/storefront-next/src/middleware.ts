@@ -22,6 +22,11 @@ export function middleware(request: NextRequest) {
     request.headers.set("x-store-slug", subdomain);
   }
 
+  // Guard: only redirect to legacy if LEGACY_VITE_ORIGIN is actually set
+  if (!legacy) {
+    return response;
+  }
+
   const legacyExact = ["/cart", "/login", "/register"];
   if (legacyExact.includes(pathname)) {
     return NextResponse.redirect(new URL(pathname + request.nextUrl.search, legacy));

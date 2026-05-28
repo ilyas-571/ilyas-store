@@ -4,7 +4,11 @@ import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "ilyas-store-secret-key";
+const JWT_SECRET = process.env.SESSION_SECRET || (
+  process.env.NODE_ENV === "production"
+    ? (() => { throw new Error("SESSION_SECRET is required in production"); })()
+    : "ilyas-store-dev-secret-key"
+);
 
 export interface AuthUser {
   id: number;

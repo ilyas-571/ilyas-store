@@ -9,7 +9,6 @@ tmp/
 out-tsc/
 out/
 .next/
-artifacts/
 .vercel/
 
 # TypeScript build cache

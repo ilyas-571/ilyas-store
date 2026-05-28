@@ -21,7 +21,12 @@ const ddlStatements = [
   "ALTER TABLE settings ADD COLUMN IF NOT EXISTS email_notifications jsonb NOT NULL DEFAULT '{\"newOrder\":true,\"orderStatusChanged\":true,\"lowStockAlert\":true}'::jsonb",
 ];
 
+/** Module-level flag to avoid running DDL on every serverless invocation */
+let _schemaEnsured = false;
+
 export async function ensureSchemaUpToDate() {
+  if (_schemaEnsured) return;
+
   for (const statement of ddlStatements) {
     try {
       await db.execute(sql.raw(statement));
@@ -29,4 +34,7 @@ export async function ensureSchemaUpToDate() {
       logger.warn({ error, statement }, "Schema ensure step failed");
     }
   }
+
+  _schemaEnsured = true;
+  logger.info("Schema migration check completed");
 }
